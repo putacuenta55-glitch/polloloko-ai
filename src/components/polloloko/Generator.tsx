@@ -514,9 +514,63 @@ function ResultPanel({
             ? `En cola · posición ${phase.position}`
             : "En cola…"
           : "Generando tu vídeo…";
-    return (
+  
+            return (
       <section
         aria-live="polite"
-        className="animate-rise flex flex-col items-center rounded-3xl border border-yolk/40 bg-surface p-8 text-center shadow-card"
-      >
+        className="animate-rise flex flex-col items-center rounded-3xl border border-border bg-card p-8 text-center"
         
+      
+      
+      >
+        <Loader2 className="h-8 w-8 animate-spin text-yolk" />
+        <p className="mt-4 font-display text-lg font-bold">{label}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {secs}s · Suele tardar entre 20 y 45 segundos
+        </p>
+      </section>
+    );
+  }
+
+  if (phase.kind === "done") {
+    return (
+      <section className="animate-rise rounded-3xl border border-border bg-card p-6">
+        <div className="flex items-center justify-between gap-2 pb-4">
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-yolk">
+            <CheckCircle2 className="h-4 w-4" />
+            Vídeo listo
+          </span>
+        </div>
+        <video
+          src={phase.videoUrl}
+          controls
+          autoPlay
+          loop
+          playsInline
+          className="w-full rounded-2xl bg-black"
+        />
+        <div className="mt-4 flex flex-wrap gap-3">
+          <a
+            href={phase.videoUrl}
+            download="polloloko.mp4"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-yolk px-5 py-3 text-sm font-bold text-primary-foreground transition hover:brightness-105"
+          >
+            <Download className="h-4 w-4" />
+            Descargar MP4
+          </a>
+          <Button variant="surface" onClick={onReset}>
+            <RotateCcw className="h-4 w-4" />
+            Crear otro
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  return null;
+}
+
+
+      
