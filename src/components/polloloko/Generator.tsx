@@ -33,6 +33,7 @@ const STRIPE_PAYMENT_LINK = "https://stripe.com";
 
 const POLL_MS = 4000;
 const MAX_WAIT_MS = 12 * 60 * 1000;
+const DEMO_VIDEO_URL = "/muestra.mp4";
 
 const IDEAS = [
   "Un pollo con gafas de sol surfeando una ola gigante al atardecer, cámara lenta",
@@ -143,10 +144,10 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
   async function generate() {
     if (!canGenerate) return;
 
-    if (freeUsed && code === "PRUEBA-GRATIS") {
-      setShowPayModal(true);
-      return;
-    }
+    
+      
+    
+  
 
     cancelled.current = false;
     const usedPrompt = prompt.trim();
@@ -442,7 +443,7 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
               disabled={!canGenerate}
             >
               {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-              {busy
+              
                 ? "Generando tu vídeo…"
                 : freeUsed && code === "PRUEBA-GRATIS"
                   ? "Desbloquear más vídeos"
@@ -452,7 +453,7 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
               {freeUsed && code === "PRUEBA-GRATIS"
                 ? "Has agotado tu vídeo de prueba gratuita. Añade un método de pago para continuar."
                 : "Incluye 1 vídeo de prueba gratuito · Sin tarjeta de crédito"}
-            </p>
+            
           </div>
 
           <Button
