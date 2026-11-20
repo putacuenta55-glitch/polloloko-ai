@@ -35,6 +35,10 @@ function falError(status: number): string {
   return "fal.ai no ha respondido bien. Inténtalo de nuevo en unos segundos.";
 }
 
+function isNoBalance(status: number, body = ""): boolean {
+  return status === 402 || status === 403 || /balance|exhausted|credit|saldo/i.test(body);
+}
+
 type Locked = { error: string; locked: true };
 const LOCKED: Locked = { error: "Código de acceso caducado. Vuelve a introducirlo.", locked: true };
 
@@ -80,8 +84,11 @@ export const submitVideo = createServerFn({ method: "POST" })
         ),
       });
       if (!res.ok) {
-        console.error("fal submit failed", res.status, await res.text().catch(() => ""));
-        return { error: falError(res.status) };
+        const body = await res.text().catch(() => "");
+        console.error("fal submit failed", res.status, body);
+        return isNoBalance(res.status, body)
+          ? { error: falError(res.status), noBalance: true as const }
+          : { error: falError(res.status) };
       }
       const json = (await res.json()) as {
         request_id?: string;
@@ -106,7 +113,7 @@ export type VideoStatus =
   | { state: "queued"; position: number | null }
   | { state: "running" }
   | { state: "done"; videoUrl: string }
-  | { state: "error"; message: string; locked?: true };
+  | { state: "error"; message: string; locked?: true; noBalance?: true };
 
 export const checkVideo = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
@@ -130,7 +137,9 @@ export const checkVideo = createServerFn({ method: "POST" })
       const statusRes = await fetch(data.statusUrl, { headers });
       if (!statusRes.ok) {
         console.error("fal status failed", statusRes.status);
-        return { state: "error", message: falError(statusRes.status) };
+        return isNoBalance(statusRes.status)
+          ? { state: "error", message: falError(statusRes.status), noBalance: true }
+          : { state: "error", message: falError(statusRes.status) };
       }
       const status = (await statusRes.json()) as { status?: string; queue_position?: number };
       if (status.status === "IN_QUEUE") {
@@ -140,11 +149,11 @@ export const checkVideo = createServerFn({ method: "POST" })
 
       const resultRes = await fetch(data.responseUrl, { headers });
       if (!resultRes.ok) {
-        console.error(
-          "fal result failed",
-          resultRes.status,
-          await resultRes.text().catch(() => ""),
-        );
+        const body = await resultRes.text().catch(() => "");
+        console.error("fal result failed", resultRes.status, body);
+        if (isNoBalance(resultRes.status, body)) {
+          return { state: "error", message: falError(resultRes.status), noBalance: true };
+        }
         return {
           state: "error",
           message:
