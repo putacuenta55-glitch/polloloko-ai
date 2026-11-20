@@ -1,3 +1,4 @@
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -12,16 +13,25 @@ import {
 } from "./fal-models";
 
 const codeSchema = z.string().min(1).max(200);
-const keySchema = z.string().trim().min(8).max(400);
+const keySchema = z.string().trim().max(400);
+
+function resolveApiKey(userKey: string, isFreeTrial: boolean): string | null {
+  if (isFreeTrial) {
+    return process.env.FAL_KEY || null;
+  }
+  return userKey.length >= 8 ? userKey : null;
+}
 
 export const verifyAccess = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string }) => z.object({ code: codeSchema }).parse(data))
-  .handler(async ({ data }) => ({ ok: checkAccessCode(data.code) }));
+  .handler(async ({ data }) => ({
+    ok: data.code === "PRUEBA-GRATIS" || checkAccessCode(data.code),
+  }));
 
 function falError(status: number): string {
-  if (status === 401) return "Tu clave de fal.ai no es válida. Revísala e inténtalo de nuevo.";
-  if (status === 403) return "fal.ai ha rechazado la petición: revisa el saldo o los permisos de tu cuenta.";
-  if (status === 422) return "fal.ai no ha aceptado el texto. Prueba a reformularlo.";
+  if (status === 401) return "La clave de fal.ai no es válida. Revísala e inténtalo de nuevo.";
+  if (status === 403) return "fal.ai ha rechazado la petición: revisa el saldo o los permisos de la cuenta.";
+  if (status === 422) return "fal.ai no ha aceptado los archivos o el texto. Prueba con una imagen más ligera u otro texto.";
   if (status === 429) return "Demasiadas peticiones a fal.ai. Espera un momento y reintenta.";
   return "fal.ai no ha respondido bien. Inténtalo de nuevo en unos segundos.";
 }
@@ -35,21 +45,43 @@ export const submitVideo = createServerFn({ method: "POST" })
       .object({
         code: codeSchema,
         apiKey: keySchema,
-        model: z.enum(["wan", "luma"]),
+        isFreeTrial: z.boolean().optional().default(false),
+        model: z.enum(["wan", "luma", "seedance"]),
         prompt: z.string().trim().min(3).max(PROMPT_MAX),
         aspectRatio: z.enum(ASPECT_RATIOS as [string, ...string[]]),
+        imageDataUrl: z.string().optional(),
+        audioDataUrl: z.string().optional(),
       })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    if (!checkAccessCode(data.code)) return LOCKED;
+    const allowed = data.code === "PRUEBA-GRATIS" || checkAccessCode(data.code);
+    if (!allowed) return LOCKED;
+
+    const activeKey = resolveApiKey(data.apiKey, data.isFreeTrial);
+    if (!activeKey) {
+      return {
+        error: data.isFreeTrial
+          ? "La prueba gratuita aún no tiene clave configurada en el servidor (FAL_KEY). Introduce tu clave de fal.ai."
+          : "Introduce tu clave de fal.ai para generar el vídeo.",
+      };
+    }
+
     const model = VIDEO_MODELS[data.model as ModelId];
+    const endpoint = data.imageDataUrl && model.imageEndpoint ? model.imageEndpoint : model.endpoint;
+
     try {
-      const res = await fetch(`https://queue.fal.run/${model.endpoint}`, {
+      const res = await fetch(`https://fal.run{endpoint}`, {
         method: "POST",
-        headers: { Authorization: `Key ${data.apiKey}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Key ${activeKey}`, "Content-Type": "application/json" },
         body: JSON.stringify(
-          buildModelInput(data.model as ModelId, data.prompt, data.aspectRatio as "16:9"),
+          buildModelInput(
+            data.model as ModelId,
+            data.prompt,
+            data.aspectRatio as "16:9",
+            data.imageDataUrl,
+            data.audioDataUrl,
+          ),
         ),
       });
       if (!res.ok) {
@@ -76,6 +108,7 @@ export const submitVideo = createServerFn({ method: "POST" })
   });
 
 export type VideoStatus =
+
   | { state: "queued"; position: number | null }
   | { state: "running" }
   | { state: "done"; videoUrl: string }
@@ -87,14 +120,20 @@ export const checkVideo = createServerFn({ method: "POST" })
       .object({
         code: codeSchema,
         apiKey: keySchema,
+        isFreeTrial: z.boolean().optional().default(false),
         statusUrl: z.string().url().refine(isFalQueueUrl),
         responseUrl: z.string().url().refine(isFalQueueUrl),
       })
       .parse(data),
   )
   .handler(async ({ data }): Promise<VideoStatus> => {
-    if (!checkAccessCode(data.code)) return { state: "error", message: LOCKED.error, locked: true };
-    const headers = { Authorization: `Key ${data.apiKey}` };
+    const allowed = data.code === "PRUEBA-GRATIS" || checkAccessCode(data.code);
+    if (!allowed) return { state: "error", message: LOCKED.error, locked: true };
+
+    const activeKey = resolveApiKey(data.apiKey, data.isFreeTrial);
+    if (!activeKey) return { state: "error", message: "Falta la clave de fal.ai." };
+
+    const headers = { Authorization: `Key ${activeKey}` };
     try {
       const statusRes = await fetch(data.statusUrl, { headers });
       if (!statusRes.ok) {
