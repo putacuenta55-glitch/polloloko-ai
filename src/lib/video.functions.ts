@@ -71,7 +71,10 @@ export const submitVideo = createServerFn({ method: "POST" })
     const endpoint = data.imageDataUrl && model.imageEndpoint ? model.imageEndpoint : model.endpoint;
 
     try {
-      const res = await fetch(`https://fal.run{endpoint}`, {
+    const res = await fetch("https://queue.fal.run/" + endpoint, {
+              
+          
+    
         method: "POST",
         headers: { Authorization: `Key ${activeKey}`, "Content-Type": "application/json" },
         body: JSON.stringify(
