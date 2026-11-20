@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 const LEGACY_KEY_STORAGE = "polloloko:fal-key";
 const FREE_TRIAL_STORAGE = "polloloko:free-trial-used";
 const STRIPE_PAYMENT_LINK = "https://stripe.com";
-const DEMO_VIDEO_URL = "/demo/polloloko-demo.mp4";
+
 const POLL_MS = 4000;
 const MAX_WAIT_MS = 12 * 60 * 1000;
 
