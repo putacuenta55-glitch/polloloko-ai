@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- fal.ai calls go through server functions in `src/lib/video.functions.ts` using the visitor's own key per request; the key is never stored server-side (users pay for their own generations).
+- The access code is checked only on the server (`src/lib/access.server.ts`, env `ACCESS_CODE` with a fallback) and re-checked on every generation call, so the lock screen is not just cosmetic.
+- MP4 downloads stream through `/api/download`, restricted to `*.fal.media`, because cross-origin links ignore the `download` attribute.

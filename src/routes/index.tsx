@@ -1,23 +1,61 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
-// The home route ships no og:image, so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { Generator } from "@/components/polloloko/Generator";
+import { LockScreen } from "@/components/polloloko/LockScreen";
+
+const CODE_STORAGE = "polloloko:access";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "polloloko — Genera vídeos de 5 s con Wan o Luma" },
+      {
+        name: "description",
+        content:
+          "Escribe una idea y conviértela en un vídeo de 5 segundos con Wan o Luma usando tu propia clave de fal.ai. Descárgalo en MP4.",
+      },
+      { property: "og:title", content: "polloloko — Texto a vídeo en 5 segundos" },
+      {
+        property: "og:description",
+        content: "Genera clips de 5 segundos con Wan o Luma usando tu clave de fal.ai y descárgalos en MP4.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
+  const [ready, setReady] = useState(false);
+  const [code, setCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCode(sessionStorage.getItem(CODE_STORAGE));
+    setReady(true);
+  }, []);
+
+  if (!ready) return <div className="min-h-dvh bg-background" />;
+
+  if (!code) {
+    return (
+      <LockScreen
+        onUnlock={(c) => {
+          sessionStorage.setItem(CODE_STORAGE, c);
+          setCode(c);
+        }}
       />
-    </div>
+    );
+  }
+
+  return (
+    <Generator
+      code={code}
+      onLock={() => {
+        sessionStorage.removeItem(CODE_STORAGE);
+        setCode(null);
+      }}
+    />
   );
 }
