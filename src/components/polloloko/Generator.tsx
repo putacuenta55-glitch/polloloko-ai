@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   CheckCircle2,
+  CreditCard,
   Download,
   ImagePlus,
   Loader2,
@@ -11,6 +12,7 @@ import {
   RotateCcw,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 
 import mascot from "@/assets/polloloko-mascot.webp";
@@ -26,6 +28,8 @@ import { checkVideo, submitVideo } from "@/lib/video.functions";
 import { cn } from "@/lib/utils";
 
 const LEGACY_KEY_STORAGE = "polloloko:fal-key";
+const FREE_TRIAL_STORAGE = "polloloko:free-trial-used";
+const STRIPE_PAYMENT_LINK = "https://stripe.com";
 const DEMO_VIDEO_URL = "/demo/polloloko-demo.mp4";
 const POLL_MS = 4000;
 const MAX_WAIT_MS = 12 * 60 * 1000;
@@ -39,6 +43,7 @@ const IDEAS = [
 type Phase =
   | { kind: "idle" }
   | { kind: "submitting" }
+
   | { kind: "waiting"; queued: boolean; position: number | null; startedAt: number }
   | {
       kind: "done";
@@ -72,12 +77,18 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
   const [imageFile, setImageFile] = useState<{ name: string; dataUrl: string } | null>(null);
   const [audioFile, setAudioFile] = useState<{ name: string; dataUrl: string } | null>(null);
 
+  const [freeUsed, setFreeUsed] = useState(false);
+  const [showPayModal, setShowPayModal] = useState(false);
+
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [now, setNow] = useState(() => Date.now());
   const cancelled = useRef(false);
 
   useEffect(() => {
     localStorage.removeItem(LEGACY_KEY_STORAGE);
+    if (localStorage.getItem(FREE_TRIAL_STORAGE) === "true") {
+      setFreeUsed(true);
+    }
     return () => {
       cancelled.current = true;
     };
@@ -131,6 +142,12 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
 
   async function generate() {
     if (!canGenerate) return;
+
+    if (freeUsed && code === "PRUEBA-GRATIS") {
+      setShowPayModal(true);
+      return;
+    }
+
     cancelled.current = false;
     const usedPrompt = prompt.trim();
     const usedModel = model;
@@ -173,6 +190,8 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
           },
         });
         if (s.state === "done") {
+          localStorage.setItem(FREE_TRIAL_STORAGE, "true");
+          setFreeUsed(true);
           return setPhase({
             kind: "done",
             videoUrl: s.videoUrl,
@@ -206,16 +225,36 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
   return (
     <main className="bg-glow min-h-dvh px-4 pb-16 pt-5 sm:px-6">
       <div className="mx-auto w-full max-w-2xl">
-        <header className="flex items-center justify-between">
+        <header className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <img src={mascot} alt="" width={640} height={640} className="mask-soft size-11" />
             <span className="font-display text-2xl font-extrabold tracking-tighter text-yolk">
               polloloko
             </span>
           </div>
-          <Button variant="ghost" size="sm" onClick={onLock} className="text-muted-foreground">
-            <LockKeyhole /> Bloquear
-          </Button>
+
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-yolk/40 bg-yolk/10 px-2.5 py-1 font-mono text-[11px] font-semibold text-yolk">
+              {freeUsed && code === "PRUEBA-GRATIS" ? "0 gratis" : "1 vídeo gratis"}
+            </span>
+            <Button
+              variant="surface"
+              size="sm"
+              onClick={() => setShowPayModal(true)}
+              className="border-yolk/40 text-yolk hover:bg-yolk/10"
+            >
+              <CreditCard className="size-4" /> Planes / Pago
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onLock}
+              title="Tengo un código VIP"
+              className="px-2 text-muted-foreground"
+            >
+              <LockKeyhole className="size-4" />
+            </Button>
+          </div>
         </header>
 
         <section className="animate-rise mt-8">
@@ -256,7 +295,7 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
                   type="button"
                   disabled={busy}
                   onClick={() => setPrompt(idea)}
-                  className="max-w-full truncate rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition hover:border-yolk/60 hover:text-yolk"
+                                    className="max-w-full truncate rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition hover:border-yolk/60 hover:text-yolk"
                 >
                   {idea}
                 </button>
@@ -394,16 +433,27 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
             </div>
           </section>
 
-          <Button
-            variant="yolk"
-            size="xl"
-            className="w-full"
-            onClick={generate}
-            disabled={!canGenerate}
-          >
-            {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-            {busy ? "Generando tu vídeo…" : "Generar vídeo de 5 s"}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              variant="yolk"
+              size="xl"
+              className="w-full"
+              onClick={generate}
+              disabled={!canGenerate}
+            >
+              {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
+              {busy
+                ? "Generando tu vídeo…"
+                : freeUsed && code === "PRUEBA-GRATIS"
+                  ? "Desbloquear más vídeos"
+                  : "Generar vídeo gratis (5 s)"}
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              {freeUsed && code === "PRUEBA-GRATIS"
+                ? "Has agotado tu vídeo de prueba gratuita. Añade un método de pago para continuar."
+                : "Incluye 1 vídeo de prueba gratuito · Sin tarjeta de crédito"}
+            </p>
+          </div>
 
           <Button
             variant="surface"
@@ -418,6 +468,63 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
           <ResultPanel phase={phase} now={now} onReset={reset} onRetry={generate} />
         </div>
       </div>
+
+      {showPayModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="animate-rise relative w-full max-w-md rounded-3xl border border-border bg-surface p-6 shadow-card">
+            <button
+              type="button"
+              onClick={() => setShowPayModal(false)}
+              className="absolute right-4 top-4 rounded-full p-2 text-muted-foreground hover:bg-background hover:text-foreground"
+            >
+              <X className="size-5" />
+            </button>
+
+            <span className="inline-block rounded-full border border-yolk/40 bg-yolk/10 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-yolk">
+              Polloloko Pro
+            </span>
+            <h2 className="font-display mt-3 text-2xl font-extrabold tracking-tight">
+              Sigue creando vídeos con IA
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Añade un método de pago para desbloquear generaciones ilimitadas en alta calidad y sin
+              esperas.
+            </p>
+
+            <div className="mt-5 space-y-3">
+              <div className="rounded-2xl border border-yolk bg-yolk/10 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-display font-bold text-yolk">Pack Creador (20 vídeos)</span>
+                  <span className="font-display text-xl font-extrabold">9,99 €</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Pago único · Sin suscripción · Descarga en MP4 HD
+                </p>
+                <a
+                  href={STRIPE_PAYMENT_LINK}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-yolk px-4 py-3 text-sm font-bold text-yolk-foreground transition hover:brightness-105"
+                >
+                  <CreditCard className="size-4" />
+                  Añadir método de pago (Stripe)
+                </a>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPayModal(false);
+                  onLock();
+                }}
+                className="w-full rounded-xl border border-border bg-background py-2.5 text-xs text-muted-foreground transition hover:border-yolk/50 hover:text-foreground"
+              >
+                Ya tengo un código de acceso VIP
+              </button>
+            </div>
+          </div>
+        </div>
+            )}
     </main>
   );
 }
@@ -497,7 +604,6 @@ function ResultPanel({
           key={phase.videoUrl}
           ref={(el) => {
             if (!el) return;
-            // React doesn't reflect `muted` before autoplay kicks in, so browsers block it.
             el.muted = Boolean(phase.demo);
             el.play().catch(() => {});
           }}
