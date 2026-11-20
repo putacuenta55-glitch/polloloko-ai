@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Lock } from "lucide-react";
+import { ExternalLink, Loader2, Lock } from "lucide-react";
 
 import mascot from "@/assets/polloloko-mascot.webp";
 import { Button } from "@/components/ui/button";
 import { verifyAccess } from "@/lib/video.functions";
 import { cn } from "@/lib/utils";
+
+export const GUMROAD_URL = "https://putacuenta.gumroad.com/l/polloloko";
 
 export function LockScreen({ onUnlock }: { onUnlock: (code: string) => void }) {
   const verify = useServerFn(verifyAccess);
@@ -85,6 +87,18 @@ export function LockScreen({ onUnlock }: { onUnlock: (code: string) => void }) {
             Entrar al corral
           </Button>
         </form>
+
+        <div className="mt-6 flex w-full flex-col items-center gap-3">
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            ¿No tienes código?
+          </p>
+          <Button asChild variant="surface" size="lg" className="w-full rounded-2xl">
+            <a href={GUMROAD_URL} target="_blank" rel="noopener noreferrer">
+              <ExternalLink />
+              Comprar código de acceso (5,99 €)
+            </a>
+          </Button>
+        </div>
       </div>
     </main>
   );
