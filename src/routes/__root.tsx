@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { InstallAppButton } from "@/components/polloloko/InstallAppButton";
 
 function NotFoundComponent() {
   return (
@@ -81,10 +82,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "polloloko" },
+      { title: "Polloloko AI" },
       { name: "description", content: "Convierte texto en vídeos de 5 segundos con Wan o Luma." },
       { name: "author", content: "polloloko" },
-      { name: "theme-color", content: "#111110" },
+      { name: "theme-color", content: "#101010" },
+      { name: "application-name", content: "Polloloko AI" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "Polloloko AI" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black" },
       { property: "og:title", content: "polloloko" },
       { property: "og:description", content: "Convierte texto en vídeos de 5 segundos con Wan o Luma." },
       { property: "og:type", content: "website" },
@@ -96,7 +102,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -132,6 +140,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <InstallAppButton />
     </QueryClientProvider>
   );
 }

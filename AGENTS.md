@@ -34,3 +34,4 @@ use the editor.
 - fal.ai calls go through server functions in `src/lib/video.functions.ts` using the visitor's own key per request; the key is never stored server-side (users pay for their own generations).
 - The access code is checked only on the server (`src/lib/access.server.ts`, env `ACCESS_CODE` with a fallback) and re-checked on every generation call, so the lock screen is not just cosmetic.
 - MP4 downloads stream through `/api/download`, restricted to `*.fal.media`, because cross-origin links ignore the `download` attribute.
+- The app is installable via `public/manifest.json` + icons only (no service worker, no offline cache); the "Instalar App" button uses `beforeinstallprompt` on Android and shows manual steps on iPhone, because a service worker would risk stale caches and offline was not requested.
