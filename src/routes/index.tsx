@@ -9,16 +9,16 @@ const CODE_STORAGE = "polloloko:access";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "polloloko — Genera vídeos de 5 s con Wan o Luma" },
+      { title: "polloloko — Genera vídeos IA con texto, fotos y audio" },
       {
         name: "description",
         content:
-          "Escribe una idea y conviértela en un vídeo de 5 segundos con Wan o Luma usando tu propia clave de fal.ai. Descárgalo en MP4.",
+          "Combina texto, fotos y audio para crear vídeos con IA de 5 segundos. Prueba gratuita disponible y descarga en MP4.",
       },
-      { property: "og:title", content: "polloloko — Texto a vídeo en 5 segundos" },
+      { property: "og:title", content: "polloloko — Vídeo IA con texto, fotos y audio" },
       {
         property: "og:description",
-        content: "Genera clips de 5 segundos con Wan o Luma usando tu clave de fal.ai y descárgalos en MP4.",
+        content: "Crea vídeos con IA usando texto, imágenes y audio. Empieza con una prueba gratuita.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -29,10 +29,13 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [ready, setReady] = useState(false);
-  const [code, setCode] = useState<string | null>(null);
+  const [code, setCode] = useState<string | null>("PRUEBA-GRATIS");
 
   useEffect(() => {
-    setCode(sessionStorage.getItem(CODE_STORAGE));
+    const saved = sessionStorage.getItem(CODE_STORAGE);
+    if (saved) {
+      setCode(saved);
+    }
     setReady(true);
   }, []);
 
