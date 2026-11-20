@@ -7,6 +7,7 @@ import {
   Loader2,
   LockKeyhole,
   Music,
+  PlayCircle,
   RotateCcw,
   Sparkles,
   Trash2,
@@ -25,6 +26,7 @@ import { checkVideo, submitVideo } from "@/lib/video.functions";
 import { cn } from "@/lib/utils";
 
 const LEGACY_KEY_STORAGE = "polloloko:fal-key";
+const DEMO_VIDEO_URL = "/demo/polloloko-demo.mp4";
 const POLL_MS = 4000;
 const MAX_WAIT_MS = 12 * 60 * 1000;
 
@@ -38,7 +40,13 @@ type Phase =
   | { kind: "idle" }
   | { kind: "submitting" }
   | { kind: "waiting"; queued: boolean; position: number | null; startedAt: number }
-  | { kind: "done"; videoUrl: string; prompt: string; model: ModelId }
+  | {
+      kind: "done";
+      videoUrl: string;
+      prompt: string;
+      model: ModelId;
+      demo?: "manual" | "noBalance";
+    }
   | { kind: "error"; message: string };
 
 const fieldLabel = "font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground";
@@ -110,6 +118,17 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
     setModel("seedance");
   }
 
+  function showDemo(reason: "manual" | "noBalance", usedPrompt = prompt.trim()) {
+    cancelled.current = true;
+    setPhase({
+      kind: "done",
+      videoUrl: DEMO_VIDEO_URL,
+      prompt: usedPrompt,
+      model,
+      demo: reason,
+    });
+  }
+
   async function generate() {
     if (!canGenerate) return;
     cancelled.current = false;
@@ -130,6 +149,7 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
       });
       if ("error" in job) {
         if ("locked" in job) return onLock();
+        if ("noBalance" in job) return showDemo("noBalance", usedPrompt);
         return setPhase({ kind: "error", message: job.error });
       }
       const startedAt = Date.now();
@@ -162,6 +182,7 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
         }
         if (s.state === "error") {
           if (s.locked) return onLock();
+          if (s.noBalance) return showDemo("noBalance", usedPrompt);
           return setPhase({ kind: "error", message: s.message });
         }
         setPhase({
@@ -384,6 +405,16 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
             {busy ? "Generando tu vídeo…" : "Generar vídeo de 5 s"}
           </Button>
 
+          <Button
+            variant="surface"
+            size="lg"
+            className="w-full"
+            onClick={() => showDemo("manual")}
+            disabled={busy}
+          >
+            <PlayCircle /> Ver vídeo de muestra gratis
+          </Button>
+
           <ResultPanel phase={phase} now={now} onReset={reset} onRetry={generate} />
         </div>
       </div>
@@ -448,10 +479,28 @@ function ResultPanel({
         <div className="flex items-center justify-between gap-2 pb-4">
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-yolk">
             <CheckCircle2 className="h-4 w-4" />
-            Vídeo listo
+            {phase.demo ? "Vídeo de muestra" : "Vídeo listo"}
           </span>
+          {phase.demo && (
+            <span className="rounded-full border border-yolk/40 bg-yolk/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-yolk">
+              Modo demo · gratis
+            </span>
+          )}
         </div>
+        {phase.demo === "noBalance" && (
+          <p className="mb-4 rounded-2xl border border-border bg-background p-3 text-sm text-muted-foreground">
+            La cuenta de fal.ai no tiene saldo ahora mismo, así que te mostramos un vídeo de
+            demostración para que puedas probar la web sin gastar créditos.
+          </p>
+        )}
         <video
+          key={phase.videoUrl}
+          ref={(el) => {
+            if (!el) return;
+            // React doesn't reflect `muted` before autoplay kicks in, so browsers block it.
+            el.muted = Boolean(phase.demo);
+            el.play().catch(() => {});
+          }}
           src={phase.videoUrl}
           controls
           autoPlay
