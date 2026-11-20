@@ -1,6 +1,6 @@
 # Polloloko Ai
 
-Crea una web moderna llamada [polloloko] donde el usuario introduzca su propia clave API de fal.ai y un texto descriptivo (prompt) para generar un vídeo de 5 segundos usando el modelo Wan o Luma. Incluye un botón para descargar el MP4 y una pantalla inicial bloqueada que pida un código de acceso."
+Crea una web moderna llamada [polloloko] donde el usuario introduzca un texto descriptivo (prompt) para generar un vídeo de 5 segundos usando el modelo Wan o Luma. Incluye un botón para descargar el MP4 y una pantalla inicial bloqueada que pida un código de acceso."
 
 This project was built with [Lovable](https://lovable.dev).
 

@@ -1,13 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  CheckCircle2,
   Download,
-  Eye,
-  EyeOff,
-  ExternalLink,
-  Gift,
   ImagePlus,
-  KeyRound,
   Loader2,
   LockKeyhole,
   Music,
@@ -28,8 +24,7 @@ import {
 import { checkVideo, submitVideo } from "@/lib/video.functions";
 import { cn } from "@/lib/utils";
 
-const KEY_STORAGE = "polloloko:fal-key";
-const TRIAL_USED_STORAGE = "polloloko:trial-used";
+const LEGACY_KEY_STORAGE = "polloloko:fal-key";
 const POLL_MS = 4000;
 const MAX_WAIT_MS = 12 * 60 * 1000;
 
@@ -42,7 +37,6 @@ const IDEAS = [
 type Phase =
   | { kind: "idle" }
   | { kind: "submitting" }
-
   | { kind: "waiting"; queued: boolean; position: number | null; startedAt: number }
   | { kind: "done"; videoUrl: string; prompt: string; model: ModelId }
   | { kind: "error"; message: string };
@@ -63,11 +57,6 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
   const submit = useServerFn(submitVideo);
   const check = useServerFn(checkVideo);
 
-  const [apiKey, setApiKey] = useState("");
-  const [showKey, setShowKey] = useState(false);
-  const [remember, setRemember] = useState(false);
-  const [trialUsed, setTrialUsed] = useState(false);
-
   const [model, setModel] = useState<ModelId>("seedance");
   const [ratio, setRatio] = useState<AspectRatio>("16:9");
   const [prompt, setPrompt] = useState("");
@@ -80,23 +69,11 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
   const cancelled = useRef(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(KEY_STORAGE);
-    if (saved) {
-      setApiKey(saved);
-      setRemember(true);
-    }
-    if (localStorage.getItem(TRIAL_USED_STORAGE) === "1") {
-      setTrialUsed(true);
-    }
+    localStorage.removeItem(LEGACY_KEY_STORAGE);
     return () => {
       cancelled.current = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (remember && apiKey) localStorage.setItem(KEY_STORAGE, apiKey);
-    else localStorage.removeItem(KEY_STORAGE);
-  }, [remember, apiKey]);
 
   useEffect(() => {
     if (phase.kind !== "waiting") return;
@@ -105,15 +82,16 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
   }, [phase.kind]);
 
   const busy = phase.kind === "submitting" || phase.kind === "waiting";
-  const hasOwnKey = apiKey.trim().length >= 8;
-  const usingFreeTrial = !hasOwnKey && !trialUsed;
-  const canGenerate = (hasOwnKey || usingFreeTrial) && prompt.trim().length >= 3 && !busy;
+  const canGenerate = prompt.trim().length >= 3 && !busy;
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 4.5 * 1024 * 1024) {
-      setPhase({ kind: "error", message: "La foto pesa más de 4.5 MB. Usa una imagen más ligera." });
+      setPhase({
+        kind: "error",
+        message: "La foto pesa más de 4.5 MB. Usa una imagen más ligera.",
+      });
       return;
     }
     const dataUrl = await fileToDataUrl(file);
@@ -137,15 +115,12 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
     cancelled.current = false;
     const usedPrompt = prompt.trim();
     const usedModel = model;
-    const isTrialRun = usingFreeTrial;
 
     setPhase({ kind: "submitting" });
     try {
       const job = await submit({
         data: {
           code,
-          apiKey: apiKey.trim(),
-          isFreeTrial: isTrialRun,
           model: usedModel,
           prompt: usedPrompt,
           aspectRatio: ratio,
@@ -173,18 +148,17 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
         const s = await check({
           data: {
             code,
-            apiKey: apiKey.trim(),
-            isFreeTrial: isTrialRun,
             statusUrl: job.statusUrl,
             responseUrl: job.responseUrl,
           },
         });
         if (s.state === "done") {
-          if (isTrialRun) {
-            localStorage.setItem(TRIAL_USED_STORAGE, "1");
-            setTrialUsed(true);
-          }
-          return setPhase({ kind: "done", videoUrl: s.videoUrl, prompt: usedPrompt, model: usedModel });
+          return setPhase({
+            kind: "done",
+            videoUrl: s.videoUrl,
+            prompt: usedPrompt,
+            model: usedModel,
+          });
         }
         if (s.state === "error") {
           if (s.locked) return onLock();
@@ -235,64 +209,6 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
         </section>
 
         <div className="mt-8 space-y-4">
-          {!trialUsed && !hasOwnKey ? (
-            <section className="rounded-3xl border border-yolk/60 bg-yolk/10 p-5 shadow-yolk">
-              <div className="flex items-center gap-2 font-display text-lg font-bold text-yolk">
-                <Gift className="size-5" />
-                ¡Tienes 1 vídeo de prueba gratuita disponible!
-              </div>
-              <p className="mt-1 text-sm text-foreground/90">
-                No necesitas configurar nada ni meter tarjeta. Escribe tu idea, sube una foto o audio
-                si quieres y pulsa generar.
-              </p>
-            </section>
-          ) : (
-            <section className={panel}>
-              <div className="flex items-center justify-between">
-                <label htmlFor="fal-key" className={fieldLabel}>
-                  <KeyRound className="mr-1.5 inline size-3.5 align-[-2px]" />
-                  {trialUsed ? "Prueba agotada · Tu clave de fal.ai" : "Tu clave de fal.ai (opcional)"}
-                </label>
-                <a
-                  href="https://fal.ai"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-yolk hover:underline"
-                >
-                  Conseguir clave <ExternalLink className="size-3" />
-                </a>
-              </div>
-              <div className="relative mt-3">
-                <input
-                  id="fal-key"
-                  type={showKey ? "text" : "password"}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="xxxxxxxx-xxxx-xxxx:xxxxxxxxxxxx"
-                  className="h-12 w-full rounded-2xl border border-input bg-background pl-4 pr-12 font-mono text-sm text-foreground outline-none transition placeholder:text-muted-foreground/50 focus:border-yolk focus:ring-2 focus:ring-yolk/30"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey((v) => !v)}
-                                    className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-xl text-muted-foreground hover:text-foreground"
-                >
-                  {showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              </div>
-              <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="size-4 accent-yolk"
-                />
-                Recordar clave en este dispositivo
-              </label>
-            </section>
-          )}
-
           <section className={panel}>
             <div className="flex items-center justify-between">
               <label htmlFor="prompt" className={fieldLabel}>
@@ -465,11 +381,7 @@ export function Generator({ code, onLock }: { code: string; onLock: () => void }
             disabled={!canGenerate}
           >
             {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-            {busy
-              ? "Generando tu vídeo…"
-              : usingFreeTrial
-                ? "Generar vídeo de prueba gratis"
-                : "Generar vídeo de 5 s"}
+            {busy ? "Generando tu vídeo…" : "Generar vídeo de 5 s"}
           </Button>
 
           <ResultPanel phase={phase} now={now} onReset={reset} onRetry={generate} />
@@ -505,7 +417,8 @@ function ResultPanel({
   }
 
   if (phase.kind === "submitting" || phase.kind === "waiting") {
-    const secs = phase.kind === "waiting" ? Math.max(0, Math.floor((now - phase.startedAt) / 1000)) : 0;
+    const secs =
+      phase.kind === "waiting" ? Math.max(0, Math.floor((now - phase.startedAt) / 1000)) : 0;
     const label =
       phase.kind === "submitting"
         ? "Enviando a fal.ai…"
@@ -514,14 +427,11 @@ function ResultPanel({
             ? `En cola · posición ${phase.position}`
             : "En cola…"
           : "Generando tu vídeo…";
-  
-            return (
+
+    return (
       <section
         aria-live="polite"
         className="animate-rise flex flex-col items-center rounded-3xl border border-border bg-card p-8 text-center"
-        
-      
-      
       >
         <Loader2 className="h-8 w-8 animate-spin text-yolk" />
         <p className="mt-4 font-display text-lg font-bold">{label}</p>
@@ -571,6 +481,3 @@ function ResultPanel({
 
   return null;
 }
-
-
-      
