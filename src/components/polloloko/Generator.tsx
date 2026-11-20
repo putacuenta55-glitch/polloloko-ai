@@ -27,13 +27,7 @@ import {
 import { checkVideo, submitVideo } from "@/lib/video.functions";
 import { cn } from "@/lib/utils";
 
-const LEGACY_KEY_STORAGE = "polloloko:fal-key";
-const FREE_TRIAL_STORAGE = "polloloko:free-trial-used";
-const STRIPE_PAYMENT_LINK = "https://stripe.com";
 
-const POLL_MS = 4000;
-const MAX_WAIT_MS = 12 * 60 * 1000;
-const DEMO_VIDEO_URL = "/muestra.mp4";
 
 const IDEAS = [
   "Un pollo con gafas de sol surfeando una ola gigante al atardecer, cámara lenta",
@@ -53,12 +47,7 @@ type Phase =
       model: ModelId;
       demo?: "manual" | "noBalance";
     }
-  | { kind: "error"; message: string };
 
-const fieldLabel = "font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground";
-const panel = "rounded-3xl border border-border bg-surface p-5 shadow-card";
-
-function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
