@@ -122,7 +122,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="es">
-      <head>
+      <head>      
+        <meta name="google-site-verification" content="<meta name="google-site-verification" content="RacCxZt4Y3YCLyN9tdctvfcgOcU6MZWLP5OtTD82684" />" />
+        <HeadContent />
+      </head>
+              <head>
+        <meta name="google-site-verification" content="TU_CODIGO_AQUI" />
+        <HeadContent />
+      </head>
+        
         <HeadContent />
       </head>
       <body>
