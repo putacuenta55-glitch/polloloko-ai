@@ -29,7 +29,8 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [ready, setReady] = useState(false);
-  const [code, setCode] = useState<string
+  const [code, setCode] = useState<string | null>(null);
+  
 
   useEffect(() => {
     const saved = sessionStorage.getItem(CODE_STORAGE);
