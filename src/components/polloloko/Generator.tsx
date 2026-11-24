@@ -28,7 +28,7 @@ import { checkVideo, submitVideo } from "@/lib/video.functions";
 import { cn } from "@/lib/utils";
 
 const STRIPE_PAYMENT_LINK = "https://stripe.com";
-const LAST_VIDEO_STORAGE = "polloloko:last_video
+const LAST_VIDEO_STORAGE = "polloloko:last_video";
 const DEMO_VIDEO_URL = "https://googleapis.com";
 const POLL_MS = 2500;
 const MAX_WAIT_MS = 180_000;
