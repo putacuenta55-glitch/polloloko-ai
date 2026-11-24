@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 
 const STRIPE_PAYMENT_LINK = "https://stripe.com";
 const LAST_VIDEO_STORAGE = "polloloko:last_video";
-const DEMO_VIDEO_URL = "https://googleapis.com";
+const DEMO_VIDEO_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
 const POLL_MS = 2500;
 const MAX_WAIT_MS = 180_000;
 
