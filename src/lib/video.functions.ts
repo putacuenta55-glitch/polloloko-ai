@@ -18,10 +18,14 @@ function getServerFalKey(): string | null {
   return process.env["FAL_KEY"] || null;
 }
 
+function isAllowedCode(code: string): boolean {
+  return code === "PUBLIC" || code === "PRUEBA-GRATIS" || checkAccessCode(code);
+}
+
 export const verifyAccess = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string }) => z.object({ code: codeSchema }).parse(data))
   .handler(async ({ data }) => ({
-    ok: data.code === "PRUEBA-GRATIS" || checkAccessCode(data.code),
+    ok: isAllowedCode(data.code),
   }));
 
 function falError(status: number): string {
@@ -56,8 +60,7 @@ export const submitVideo = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const allowed = data.code === "PRUEBA-GRATIS" || checkAccessCode(data.code);
-    if (!allowed) return LOCKED;
+    if (!isAllowedCode(data.code)) return LOCKED;
 
     const activeKey = getServerFalKey();
     if (!activeKey) {
@@ -110,6 +113,7 @@ export const submitVideo = createServerFn({ method: "POST" })
   });
 
 export type VideoStatus =
+
   | { state: "queued"; position: number | null }
   | { state: "running" }
   | { state: "done"; videoUrl: string }
@@ -126,8 +130,9 @@ export const checkVideo = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }): Promise<VideoStatus> => {
-    const allowed = data.code === "PRUEBA-GRATIS" || checkAccessCode(data.code);
-    if (!allowed) return { state: "error", message: LOCKED.error, locked: true };
+    if (!isAllowedCode(data.code)) {
+      return { state: "error", message: LOCKED.error, locked: true };
+    }
 
     const activeKey = getServerFalKey();
     if (!activeKey) return { state: "error", message: MISSING_KEY };
