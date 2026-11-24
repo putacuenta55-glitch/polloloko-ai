@@ -29,7 +29,8 @@ import { cn } from "@/lib/utils";
 
 const STRIPE_PAYMENT_LINK = "https://stripe.com";
 const LAST_VIDEO_STORAGE = "polloloko:last_video";
-const DEMO_VIDEO_URL = "https://mozilla.net";
+const DEMO_VIDEO_URL = "interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4
+  ";
 const POLL_MS = 2500;
 const MAX_WAIT_MS = 180_000;
 
