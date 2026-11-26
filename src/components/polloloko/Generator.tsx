@@ -26,8 +26,7 @@ import {
 } from "@/lib/fal-models";
 import { checkVideo, submitVideo } from "@/lib/video.functions";
 import { cn } from "@/lib/utils";
-
-const STRIPE_URL = "https://stripe.com";
+const STRIPE_URL = "https://buy.stripe.com/" + "bJeaEXbjncu8bxM4sP0gw02";
 
 const STRIPE_PLANS = [
   {
@@ -43,7 +42,8 @@ const LAST_VIDEO_STORAGE = "polloloko:last_video";
 const CREDITS_STORAGE = "polloloko:credits";
 const PRO_STORAGE = "polloloko:pro";
 const DEMO_VIDEO_URL =
-  "https://mozilla.net";
+  "https://googleapis.com" +
+  "gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
 const POLL_MS = 2500;
 const MAX_WAIT_MS = 180_000;
 const panel = "rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6";
