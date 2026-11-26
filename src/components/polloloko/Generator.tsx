@@ -214,7 +214,7 @@ export function Generator({
     if (!canGenerate) return;
 
     if (!hasAccess) {
-      window.location.href = STRIPE_URL;
+    setShowPayModal(true);
       return;
     }
 
