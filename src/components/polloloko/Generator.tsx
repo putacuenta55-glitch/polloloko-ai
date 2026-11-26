@@ -27,34 +27,15 @@ import {
 import { checkVideo, submitVideo } from "@/lib/video.functions";
 import { cn } from "@/lib/utils";
 
+const STRIPE_URL = "https://stripe.com";
+
 const STRIPE_PLANS = [
   {
     id: "single",
-    title: "1 vídeo",
-    price: "1,49 €",
-    subtitle: "Pago único · 1 descarga HD sin marca de agua",
-    url: "https://stripe.com",
-  },
-  {
-    id: "pack5",
-    title: "Pack 5 vídeos",
-    price: "4,99 €",
-    subtitle: "1,00 €/vídeo · Ahorra un 33%",
-    url: "https://stripe.com",
-  },
-  {
-    id: "pack10",
-    title: "Pack 10 vídeos",
-    price: "8,99 €",
-    subtitle: "Más popular · 0,90 €/vídeo",
-    url: "https://stripe.com",
-  },
-  {
-    id: "pro",
-    title: "Plan Pro Mensual",
-    price: "12,99 €/mes",
-    subtitle: "Vídeos ilimitados sin marca de agua",
-    url: "https://stripe.com",
+    title: "1 vídeo IA en HD",
+    price: "2,49 €",
+    subtitle: "Pago único · Descarga MP4 sin marca de agua",
+    url: STRIPE_URL,
   },
 ];
 
@@ -89,7 +70,7 @@ type Phase =
       videoUrl: string;
       prompt: string;
       model: ModelId;
-      demo?: "manual" | "noBalance";
+      demo?: "manual";
     }
   | { kind: "error"; message: string };
 
@@ -146,13 +127,14 @@ export function Generator({
       if (compraPro) {
         localStorage.setItem(PRO_STORAGE, "true");
         setIsPro(true);
+        setPaid(true);
       } else if (creditosComprados > 0) {
-        const restantes = Math.max(0, savedCredits + creditosComprados - 1);
-        localStorage.setItem(CREDITS_STORAGE, String(restantes));
-        setCredits(restantes);
+        const total = savedCredits + creditosComprados;
+        localStorage.setItem(CREDITS_STORAGE, String(total));
+        setCredits(total);
+        setPaid(true);
       }
 
-      setPaid(true);
       const saved = localStorage.getItem(LAST_VIDEO_STORAGE);
       if (saved) {
         try {
@@ -163,7 +145,7 @@ export function Generator({
     } else {
       setCredits(savedCredits);
       setIsPro(savedPro);
-      if (savedPro) {
+      if (savedPro || savedCredits > 0) {
         setPaid(true);
       }
     }
@@ -180,10 +162,11 @@ export function Generator({
   }, [phase.kind]);
 
   const busy = phase.kind === "submitting" || phase.kind === "waiting";
+  const hasAccess = isPro || credits > 0;
   const canGenerate = prompt.trim().length >= 3 && !busy;
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.item(0);
     if (!file) return;
     if (file.size > 4.5 * 1024 * 1024) {
       setPhase({
@@ -197,7 +180,7 @@ export function Generator({
   }
 
   async function handleAudioUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.item(0);
     if (!file) return;
     if (file.size > 4.5 * 1024 * 1024) {
       setPhase({
@@ -211,19 +194,24 @@ export function Generator({
     setModel("seedance");
   }
 
-  function showDemo(reason: "manual" | "noBalance", usedPrompt = prompt.trim()) {
+  function showDemo() {
     cancelled.current = true;
     setPhase({
       kind: "done",
       videoUrl: DEMO_VIDEO_URL,
-      prompt: usedPrompt,
+      prompt: prompt.trim() || "Vídeo de demostración",
       model,
-      demo: reason,
+      demo: "manual",
     });
   }
 
   async function generate() {
     if (!canGenerate) return;
+
+    if (!hasAccess) {
+      window.location.href = STRIPE_URL;
+      return;
+    }
 
     cancelled.current = false;
     const usedPrompt = prompt.trim();
@@ -243,7 +231,13 @@ export function Generator({
       });
       if ("error" in job) {
         if ("locked" in job) return onLock();
-        if ("noBalance" in job) return showDemo("noBalance", usedPrompt);
+        if ("noBalance" in job) {
+          return setPhase({
+            kind: "error",
+            message:
+              "Nuestros servidores están saturados ahora mismo. Inténtalo de nuevo en un par de minutos.",
+          });
+        }
         return setPhase({ kind: "error", message: job.error });
       }
       const startedAt = Date.now();
@@ -257,7 +251,7 @@ export function Generator({
           return setPhase({
             kind: "error",
             message:
-              "fal.ai está tardando demasiado. Vuelve a intentarlo en unos minutos.",
+              "El servidor está tardando demasiado. Vuelve a intentarlo en unos minutos.",
           });
         }
         const s = await check({
@@ -283,15 +277,19 @@ export function Generator({
             setCredits(nextCredits);
             localStorage.setItem(CREDITS_STORAGE, String(nextCredits));
             setPaid(true);
-          } else {
-            setPaid(false);
           }
 
           return setPhase(donePhase);
         }
         if (s.state === "error") {
           if (s.locked) return onLock();
-          if (s.noBalance) return showDemo("noBalance", usedPrompt);
+          if (s.noBalance) {
+            return setPhase({
+              kind: "error",
+              message:
+                "Nuestros servidores están saturados ahora mismo. Inténtalo de nuevo en un par de minutos.",
+            });
+          }
           return setPhase({ kind: "error", message: s.message });
         }
         setPhase({
@@ -312,7 +310,6 @@ export function Generator({
 
   function reset() {
     cancelled.current = true;
-    setPaid(isPro);
     setPhase({ kind: "idle" });
   }
 
@@ -339,15 +336,15 @@ export function Generator({
                 ? "Plan Pro · Ilimitado"
                 : credits > 0
                   ? `${credits} ${credits === 1 ? "crédito" : "créditos"}`
-                  : "Prueba gratis · Desde 1,49 €"}
-                        </span>
-            <Button
+                  : "1 vídeo · 2,49 €"}
+            </span>
+                        <Button
               variant="surface"
               size="sm"
               onClick={() => setShowPayModal(true)}
               className="border-yolk/40 text-yolk hover:bg-yolk/10"
             >
-              <CreditCard className="size-4" /> Precio
+              <CreditCard className="size-4" /> Comprar
             </Button>
             <Button
               variant="ghost"
@@ -368,8 +365,8 @@ export function Generator({
             <span className="text-outline-yolk">Sale un vídeo IA.</span>
           </h1>
           <p className="mt-3 text-muted-foreground">
-            Crea tu vídeo gratis en segundos. Elige un pack desde 1,49 € o Plan
-            Pro solo si quieres descargarlo sin marca de agua.
+            Crea vídeos con inteligencia artificial en segundos. Descarga en HD
+            sin marca de agua por 2,49 €.
           </p>
         </section>
 
@@ -480,8 +477,8 @@ export function Generator({
               </div>
             </div>
           </section>
-          
-                    <section className={panel}>
+
+          <section className={panel}>
             <p className={fieldLabel}>3. Motor IA y formato</p>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {(
@@ -557,11 +554,15 @@ export function Generator({
               disabled={!canGenerate}
             >
               {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-              {busy ? "Generando tu vídeo…" : "Generar vídeo gratis (5 s)"}
+              {busy
+                ? "Generando tu vídeo…"
+                : hasAccess
+                  ? "Generar vídeo ahora (5 s)"
+                  : "Generar vídeo con IA — 2,49 €"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Prueba gratis sin tarjeta · Desbloquéalo y descárgalo en MP4 sin
-              marca de agua desde 1,49 €.
+              Entrega instantánea en MP4 HD sin marca de agua · Pago seguro con
+              Stripe.
             </p>
           </div>
 
@@ -569,10 +570,10 @@ export function Generator({
             variant="surface"
             size="lg"
             className="w-full"
-            onClick={() => showDemo("manual")}
+            onClick={showDemo}
             disabled={busy}
           >
-            <PlayCircle /> Ver vídeo de muestra gratis
+            <PlayCircle /> Ver vídeo de ejemplo
           </Button>
 
           <ResultPanel
@@ -587,7 +588,7 @@ export function Generator({
       </div>
 
       {showPayModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="animate-rise relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-card">
             <button
               type="button"
@@ -597,49 +598,34 @@ export function Generator({
               <X className="size-5" />
             </button>
 
-            <span className="inline-block rounded-full border border-yolk/40 bg-yolk/10 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-yolk">
-              Planes y packs HD
-            </span>
-            <h2 className="font-display mt-3 text-2xl font-extrabold tracking-tight">
-              Genera gratis, paga solo si te gusta
+            <h2 className="font-display text-2xl font-extrabold tracking-tight">
+              Desbloquea tu vídeo IA
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Crea todos los vídeos de vista previa que quieras sin pagar nada.
-              Elige un pack o plan mensual para descargar en HD sin marca de
+              Generación instantánea en calidad HD y descarga MP4 sin marca de
               agua.
             </p>
 
-            <div className="mt-5 space-y-2.5">
+            <div className="mt-5 space-y-3">
               {STRIPE_PLANS.map((plan) => (
                 <a
                   key={plan.id}
                   href={plan.url}
-                  className="block rounded-2xl border border-yolk/40 bg-yolk/10 p-3.5 transition hover:border-yolk hover:bg-yolk/20"
+                  className="flex items-center justify-between rounded-2xl border border-border bg-background p-4 transition hover:border-yolk hover:bg-yolk/5"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-display font-bold text-yolk">
+                  <div>
+                    <p className="font-display font-bold text-foreground">
                       {plan.title}
-                    </span>
-                    <span className="font-display text-lg font-extrabold text-foreground">
-                      {plan.price}
-                    </span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {plan.subtitle}
+                    </p>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {plan.subtitle}
-                  </p>
+                  <span className="rounded-xl bg-yolk px-3 py-1.5 font-mono text-sm font-bold text-yolk-foreground">
+                    {plan.price}
+                  </span>
                 </a>
               ))}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPayModal(false);
-                  onLock();
-                }}
-                className="w-full rounded-xl border border-border bg-background py-2.5 text-xs text-muted-foreground transition hover:border-yolk/50 hover:text-foreground"
-              >
-                Tengo un código de acceso VIP
-              </button>
             </div>
           </div>
         </div>
@@ -647,6 +633,7 @@ export function Generator({
     </main>
   );
 }
+
 function ResultPanel({
   phase,
   now,
@@ -668,7 +655,7 @@ function ResultPanel({
     return (
       <section className="animate-rise rounded-3xl border border-comb/50 bg-comb/10 p-5">
         <p className="font-display text-lg font-bold text-comb">
-          Vaya, el pollo se ha liado
+          Vaya, algo ha salido mal
         </p>
         <p className="mt-1 text-sm text-foreground/90">{phase.message}</p>
         <Button variant="surface" className="mt-4" onClick={onRetry}>
@@ -681,21 +668,23 @@ function ResultPanel({
   if (phase.kind === "submitting" || phase.kind === "waiting") {
     const secs = Math.max(
       0,
-      Math.round((now - (phase.kind === "waiting" ? phase.startedAt : now)) / 1000),
+      Math.round(
+        (now - (phase.kind === "waiting" ? phase.startedAt : now)) / 1000,
+      ),
     );
     const label =
       phase.kind === "submitting"
-        ? "Enviando al pollo…"
+        ? "Enviando al pollo..."
         : phase.queued
           ? phase.position
-            ? `En cola (puesto ${phase.position})…`
-            : "En cola…"
-          : "Generando tu vídeo…";
+            ? `En cola (puesto ${phase.position})...`
+            : "En cola..."
+          : "Generando tu vídeo...";
 
     return (
       <section
         aria-live="polite"
-        className="animate-rise flex flex-col items-center rounded-3xl border border-border bg-card p-8 text-center"
+        className="animate-rise flex flex-col items-center gap-2 rounded-3xl border border-border bg-card p-8 text-center"
       >
         <Loader2 className="h-8 w-8 animate-spin text-yolk" />
         <p className="font-display mt-4 text-lg font-bold">{label}</p>
@@ -714,20 +703,15 @@ function ResultPanel({
         <div className="flex items-center justify-between gap-2 pb-4">
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-yolk">
             <CheckCircle2 className="h-4 w-4" />
-            {phase.demo ? "Vídeo de muestra" : "Vídeo listo"}
+            {phase.demo ? "Vídeo de ejemplo" : "Vídeo listo"}
           </span>
           {phase.demo && (
             <span className="rounded-full border border-yolk/40 bg-yolk/10 px-2.5 py-0.5 font-mono text-[11px] text-yolk">
-              Modo demo · gratis
+              Ejemplo HD
             </span>
           )}
         </div>
-        {phase.demo === "noBalance" && (
-          <p className="mb-4 rounded-2xl border border-border bg-background p-3 text-xs text-muted-foreground">
-            La cuenta de fal.ai no tiene saldo ahora mismo, así que te
-            mostramos un vídeo de demostración gratuito.
-          </p>
-        )}
+
         <video
           key={phase.videoUrl}
           ref={(el) => {
@@ -742,6 +726,7 @@ function ResultPanel({
           playsInline
           className="w-full rounded-2xl bg-black"
         />
+
         <div className="mt-4 flex flex-wrap gap-3">
           {canDownload ? (
             <a
@@ -757,7 +742,7 @@ function ResultPanel({
           ) : (
             <Button variant="yolk" className="flex-1" onClick={onOpenPay}>
               <CreditCard className="h-4 w-4" />
-              Desbloquear descarga (desde 1,49 €)
+              Desbloquear descarga (2,49 €)
             </Button>
           )}
           <Button variant="surface" onClick={onReset}>
