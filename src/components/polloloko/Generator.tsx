@@ -26,8 +26,7 @@ import {
 } from "@/lib/fal-models";
 import { checkVideo, submitVideo } from "@/lib/video.functions";
 import { cn } from "@/lib/utils";
-
-const STRIPE_PAYMENT_LINK = "https://stripe.com";
+const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/28EbJ04cxc2V41X1lWeAg00";
 const LAST_VIDEO_STORAGE = "polloloko:last_video";
 const DEMO_VIDEO_URL = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4 ";
 const POLL_MS = 2500;
