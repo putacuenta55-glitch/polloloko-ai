@@ -25,9 +25,9 @@ import {
   type ModelId,
 } from "@/lib/fal-models";
 import { checkVideo, submitVideo } from "@/lib/video.functions";
-import { cn } from "@/lib/utils";
-const STRIPE_URL = "https://buy.stripe.com"/ + "bJeaEXbjncu8bxM4sP0gw02";
-const STRIPE_PRO_URL = "https://buy.stripe.com"/ + "00weVd87b1PucBQ4sP0gw03";
+import { cn } from "@/lib/utils" 
+const STRIPE_URL = ["https://buy.stripe.com", "bJeaEXbjncu8bxM4sP0gw02"].join("/");
+const STRIPE_PRO_URL = ["https://buy.stripe.com", "00weVd87b1PucBQ4sP0gw03"].join("/");
 const STRIPE_PLANS = [
   {
     id: "single",
@@ -35,9 +35,11 @@ const STRIPE_PLANS = [
     price: "2,49 €",
     subtitle: "Pago único · Descarga MP4 sin marca de agua",
     url: STRIPE_URL,
-  },
+     },
   {
     id: "pro",
+    
+  
     title: "Suscripción Mensual Pro",
     price: "5,99 €/mes",
     subtitle: "Hasta 10 vídeos IA al mes sin marca de agua",
