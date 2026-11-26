@@ -42,7 +42,7 @@ const LAST_VIDEO_STORAGE = "polloloko:last_video";
 const CREDITS_STORAGE = "polloloko:credits";
 const PRO_STORAGE = "polloloko:pro";
 const DEMO_VIDEO_URL =
-  "https://googleapis.com" +
+  "https://commondatastorage.googleapis.com/" +
   "gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
 const POLL_MS = 2500;
 const MAX_WAIT_MS = 180_000;
