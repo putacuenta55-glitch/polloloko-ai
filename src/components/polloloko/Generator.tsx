@@ -340,9 +340,38 @@ export function Generator({
                 : credits > 0
                   ? `${credits} ${credits === 1 ? "crédito" : "créditos"}`
                   : "Prueba gratis · Desde 1,49 €"}
-            </span>
+                        </span>
             <Button
-              
+              variant="surface"
+              size="sm"
+              onClick={() => setShowPayModal(true)}
+              className="border-yolk/40 text-yolk hover:bg-yolk/10"
+            >
+              <CreditCard className="size-4" /> Precio
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onLock}
+              title="Tengo un código VIP"
+              className="px-2 text-muted-foreground"
+            >
+              <LockKeyhole className="size-4" />
+            </Button>
+          </div>
+        </header>
+
+        <section className="animate-rise mt-8">
+          <h1 className="font-display text-4xl font-extrabold leading-[0.95] tracking-tighter sm:text-5xl">
+            Texto, foto y audio.
+            <br />
+            <span className="text-outline-yolk">Sale un vídeo IA.</span>
+          </h1>
+          <p className="mt-3 text-muted-foreground">
+            Crea tu vídeo gratis en segundos. Elige un pack desde 1,49 € o Plan
+            Pro solo si quieres descargarlo sin marca de agua.
+          </p>
+        </section>
 
         <div className="mt-8 space-y-4">
           <section className={panel}>
@@ -451,6 +480,7 @@ export function Generator({
               </div>
             </div>
           </section>
+          
                     <section className={panel}>
             <p className={fieldLabel}>3. Motor IA y formato</p>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -616,4 +646,128 @@ export function Generator({
       )}
     </main>
   );
+}
+function ResultPanel({
+  phase,
+  now,
+  paid,
+  onOpenPay,
+  onReset,
+  onRetry,
+}: {
+  phase: Phase;
+  now: number;
+  paid: boolean;
+  onOpenPay: () => void;
+  onReset: () => void;
+  onRetry: () => void;
+}) {
+  if (phase.kind === "idle") return null;
+
+  if (phase.kind === "error") {
+    return (
+      <section className="animate-rise rounded-3xl border border-comb/50 bg-comb/10 p-5">
+        <p className="font-display text-lg font-bold text-comb">
+          Vaya, el pollo se ha liado
+        </p>
+        <p className="mt-1 text-sm text-foreground/90">{phase.message}</p>
+        <Button variant="surface" className="mt-4" onClick={onRetry}>
+          <RotateCcw /> Reintentar
+        </Button>
+      </section>
+    );
+  }
+
+  if (phase.kind === "submitting" || phase.kind === "waiting") {
+    const secs = Math.max(
+      0,
+      Math.round((now - (phase.kind === "waiting" ? phase.startedAt : now)) / 1000),
+    );
+    const label =
+      phase.kind === "submitting"
+        ? "Enviando al pollo…"
+        : phase.queued
+          ? phase.position
+            ? `En cola (puesto ${phase.position})…`
+            : "En cola…"
+          : "Generando tu vídeo…";
+
+    return (
+      <section
+        aria-live="polite"
+        className="animate-rise flex flex-col items-center rounded-3xl border border-border bg-card p-8 text-center"
+      >
+        <Loader2 className="h-8 w-8 animate-spin text-yolk" />
+        <p className="font-display mt-4 text-lg font-bold">{label}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {secs}s · Suele tardar entre 20 y 45 segundos
+        </p>
+      </section>
+    );
+  }
+
+  if (phase.kind === "done") {
+    const canDownload = paid || Boolean(phase.demo);
+
+    return (
+      <section className="animate-rise rounded-3xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between gap-2 pb-4">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-yolk">
+            <CheckCircle2 className="h-4 w-4" />
+            {phase.demo ? "Vídeo de muestra" : "Vídeo listo"}
+          </span>
+          {phase.demo && (
+            <span className="rounded-full border border-yolk/40 bg-yolk/10 px-2.5 py-0.5 font-mono text-[11px] text-yolk">
+              Modo demo · gratis
+            </span>
+          )}
+        </div>
+        {phase.demo === "noBalance" && (
+          <p className="mb-4 rounded-2xl border border-border bg-background p-3 text-xs text-muted-foreground">
+            La cuenta de fal.ai no tiene saldo ahora mismo, así que te
+            mostramos un vídeo de demostración gratuito.
+          </p>
+        )}
+        <video
+          key={phase.videoUrl}
+          ref={(el) => {
+            if (!el) return;
+            el.muted = Boolean(phase.demo);
+            el.play().catch(() => {});
+          }}
+          src={phase.videoUrl}
+          controls
+          autoPlay
+          loop
+          playsInline
+          className="w-full rounded-2xl bg-black"
+        />
+        <div className="mt-4 flex flex-wrap gap-3">
+          {canDownload ? (
+            <a
+              href={phase.videoUrl}
+              download="polloloko.mp4"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-yolk px-4 py-3 font-display text-sm font-bold text-yolk-foreground transition hover:opacity-90"
+            >
+              <Download className="h-4 w-4" />
+              Descargar MP4
+            </a>
+          ) : (
+            <Button variant="yolk" className="flex-1" onClick={onOpenPay}>
+              <CreditCard className="h-4 w-4" />
+              Desbloquear descarga (desde 1,49 €)
+            </Button>
+          )}
+          <Button variant="surface" onClick={onReset}>
+            <RotateCcw className="h-4 w-4" />
+            Crear otro
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  return null;
 }
