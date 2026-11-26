@@ -342,36 +342,7 @@ export function Generator({
                   : "Prueba gratis · Desde 1,49 €"}
             </span>
             <Button
-                            variant="surface"
-              size="sm"
-              onClick={() => setShowPayModal(true)}
-              className="border-yolk/40 text-yolk hover:bg-yolk/10"
-            >
-              <CreditCard className="size-4" /> Precio
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onLock}
-              title="Tengo un código VIP"
-              className="px-2 text-muted-foreground"
-            >
-              <LockKeyhole className="size-4" />
-            </Button>
-          </div>
-        </header>
-
-        <section className="animate-rise mt-8">
-          <h1 className="font-display text-4xl font-extrabold leading-[0.95] tracking-tighter sm:text-5xl">
-            Texto, foto y audio.
-            <br />
-            <span className="text-outline-yolk">Sale un vídeo IA.</span>
-          </h1>
-          <p className="mt-3 text-muted-foreground">
-            Crea tu vídeo gratis en segundos. Elige un pack desde 1,49 € o Plan
-            Pro solo si quieres descargarlo sin marca de agua.
-          </p>
-        </section>
+              
 
         <div className="mt-8 space-y-4">
           <section className={panel}>
