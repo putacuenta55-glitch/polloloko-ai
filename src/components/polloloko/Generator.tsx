@@ -41,9 +41,7 @@ const STRIPE_PLANS = [
 const LAST_VIDEO_STORAGE = "polloloko:last_video";
 const CREDITS_STORAGE = "polloloko:credits";
 const PRO_STORAGE = "polloloko:pro";
-const DEMO_VIDEO_URL =
-  "https://commondatastorage.googleapis.com/" +
-  "gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+const DEMO_VIDEO_URL = "/demo/polloloko-demo.mp4";
 const POLL_MS = 2500;
 const MAX_WAIT_MS = 180_000;
 const panel = "rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6";
