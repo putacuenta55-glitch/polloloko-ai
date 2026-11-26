@@ -28,7 +28,6 @@ import { checkVideo, submitVideo } from "@/lib/video.functions";
 import { cn } from "@/lib/utils";
 const STRIPE_URL = "https://buy.stripe.com"/ + "bJeaEXbjncu8bxM4sP0gw02";
 const STRIPE_PRO_URL = "https://buy.stripe.com"/ + "00weVd87b1PucBQ4sP0gw03";
-
 const STRIPE_PLANS = [
   {
     id: "single",
