@@ -12,3 +12,4 @@ Allow: /
 
 User-agent: *
 Allow: /
+Sitemap: https://polloloko-ai.vercel.app/sitemap.xml
