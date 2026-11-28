@@ -82,7 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Polloloko AI" },
+      { title: "Polloloko AI | Crear Vídeos con Inteligencia Artificial (Texto, Foto y Audio)" },
       { name: "description", content: "Convierte texto en vídeos de 5 segundos con Wan o Luma." },
       { name: "author", content: "polloloko" },
       { name: "theme-color", content: "#101010" },
